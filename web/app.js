@@ -620,8 +620,12 @@ function disconnectVideo() {
     cancelAnimationFrame(S._simAnimId);
     S._simAnimId = null;
   }
+  if (S._directPollStop) {
+    S._directPollStop();
+    S._directPollStop = null;
+  }
   const feed = document.getElementById('jarvis-feed');
-  if (feed) { feed.src = ''; feed.style.display = 'none'; }
+  if (feed) { feed.src = ''; feed.style.display = 'none'; feed.onload = null; feed.onerror = null; }
   const video = document.getElementById('webcam-video');
   if (video) { video.srcObject = null; video.style.display = 'none'; }
   const viewport = document.getElementById('jarvis-viewport');
@@ -846,8 +850,9 @@ function connectVideo() {
   setStatusCard('sc-cam', 'dot-cyan', `Camera : Testing ${ip}...`);
   logConsole(`Testing connection to IP Webcam at ${ip}...`, 'INFO');
 
+  // Try local proxy server first (fast path when server.py is running)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3500);
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   fetch('/cam/set?ip=' + encodeURIComponent(ip), { signal: controller.signal })
     .then(r => {
@@ -860,18 +865,143 @@ function connectVideo() {
         logConsole(`Server proxy connected to ${ip} ✓`, 'SUCCESS');
         startStream(ip, viewport, statusEl, canvas, feed);
       } else {
-        logConsole(`Server could not reach ${ip}: ${data.error || 'Unknown error'}`, 'ERROR');
-        logConsole('Make sure: (1) IP Webcam app is running, (2) Phone & PC on same WiFi, (3) Correct IP:PORT', 'WARNING');
-        setStatusCard('sc-cam', 'dot-red', `Camera : Cannot reach ${ip}`);
-        statusEl.textContent = 'JARVIS_VISION_CORE :: CONNECTION FAILED';
+        logConsole(`Proxy could not reach ${ip}, trying direct browser connection...`, 'WARNING');
+        startDirectCameraConnection(ip, viewport, statusEl, canvas, feed);
       }
     })
     .catch(err => {
       clearTimeout(timeoutId);
-      logConsole(`Note: Local hardware proxy unavailable (${err.name === 'AbortError' ? 'Timeout' : err.message})`, 'WARNING');
-      logConsole('Vercel Cloud Mode: Private LAN IPs require local server. Launching Virtual Cyber Rover Camera...', 'INFO');
-      startSimulatedCameraPipeline(viewport, statusEl, canvas);
+      logConsole(`No proxy server detected — connecting directly to camera...`, 'INFO');
+      startDirectCameraConnection(ip, viewport, statusEl, canvas, feed);
     });
+}
+
+// ── Direct Browser → IP Camera Connection (No Proxy Needed) ─
+function startDirectCameraConnection(ip, viewport, statusEl, canvas, feed) {
+  S.camConnected = true;
+  viewport.classList.add('live');
+  const connBtn = document.getElementById('connect-cam-btn');
+  if (connBtn) { connBtn.textContent = 'DISCONNECT'; connBtn.classList.add('active'); }
+
+  statusEl.textContent = 'JARVIS_VISION_CORE :: DIRECT LINK...';
+  logConsole(`Attempting direct MJPEG stream: http://${ip}/video`, 'INFO');
+
+  // Try MJPEG stream first via <img> tag (zero latency, works cross-origin)
+  let mjpegTimedOut = false;
+  const mjpegTimeout = setTimeout(() => {
+    mjpegTimedOut = true;
+    if (feed.naturalWidth === 0) {
+      logConsole('MJPEG stream timed out, switching to snapshot polling...', 'WARNING');
+      feed.onload = null; feed.onerror = null;
+      feed.src = ''; feed.style.display = 'none';
+      startDirectSnapshotPolling(ip, viewport, statusEl, canvas);
+    }
+  }, 4000);
+
+  feed.onerror = () => {
+    if (mjpegTimedOut) return;
+    clearTimeout(mjpegTimeout);
+    logConsole('MJPEG /video endpoint not available, switching to snapshot polling...', 'WARNING');
+    feed.onerror = null; feed.onload = null;
+    feed.src = ''; feed.style.display = 'none';
+    startDirectSnapshotPolling(ip, viewport, statusEl, canvas);
+  };
+
+  feed.onload = () => {
+    clearTimeout(mjpegTimeout);
+    feed.style.display = 'block';
+    feed.style.width = '100%'; feed.style.height = '100%';
+    feed.style.objectFit = S.camFitMode === 'stretch' ? 'fill' : (S.camFitMode || 'cover');
+    setStatusCard('sc-cam', 'dot-green', `Camera : ZERO-LATENCY DIRECT (${ip})`);
+    setStatusCard('sc-fps', 'dot-green', 'Camera Rate : MJPEG Live Stream');
+    setStatusCard('sc-ping', 'dot-green', 'Ping : 0 ms (Direct Link)');
+    statusEl.textContent = 'JARVIS_VISION_CORE :: ZERO_LATENCY_DIRECT';
+    logConsole(`Direct MJPEG stream LIVE — ZERO LATENCY ✓ (http://${ip}/video)`, 'SUCCESS');
+  };
+
+  feed.src = `http://${ip}/video?t=${Date.now()}`;
+}
+
+// ── Direct Snapshot Polling (Fallback if MJPEG stream unavailable) ─
+function startDirectSnapshotPolling(ip, viewport, statusEl, canvas) {
+  logConsole(`Starting direct snapshot polling: http://${ip}/shot.jpg`, 'INFO');
+
+  let polling = true;
+  let frameCount = 0, lastFpsTime = performance.now(), currentFps = 0;
+  let reported = false;
+
+  S._directPollStop = () => { polling = false; };
+
+  function pollFrame() {
+    if (!polling || !S.camConnected) return;
+    const t0 = performance.now();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      if (!polling || !S.camConnected) return;
+      const rect = viewport.getBoundingClientRect();
+      if (canvas.width !== rect.width || canvas.height !== rect.height) {
+        canvas.width = rect.width; canvas.height = rect.height;
+      }
+      const ctx = canvas.getContext('2d');
+      const fitMode = S.camFitMode || 'cover';
+      const iw = img.naturalWidth || 640, ih = img.naturalHeight || 480;
+
+      if (fitMode === 'stretch') {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      } else {
+        const scale = fitMode === 'cover'
+          ? Math.max(canvas.width / iw, canvas.height / ih)
+          : Math.min(canvas.width / iw, canvas.height / ih);
+        const dw = iw * scale, dh = ih * scale;
+        const dx = (canvas.width - dw) / 2, dy = (canvas.height - dh) / 2;
+        if (fitMode === 'contain') {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, dx, dy, dw, dh);
+      }
+
+      drawHudOverlay(ctx, canvas.width, canvas.height);
+
+      const latency = Math.round(performance.now() - t0);
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 1000) {
+        currentFps = frameCount;
+        frameCount = 0;
+        lastFpsTime = now;
+        setStatusCard('sc-fps', 'dot-green', `Camera Rate : ${currentFps} FPS`);
+      }
+      setStatusCard('sc-ping', 'dot-green', `Ping : ${latency} ms`);
+
+      if (!reported) {
+        reported = true;
+        setStatusCard('sc-cam', 'dot-green', `Camera : ZERO-LATENCY DIRECT (${ip})`);
+        statusEl.textContent = 'JARVIS_VISION_CORE :: ZERO_LATENCY_DIRECT';
+        logConsole(`Direct snapshot pipeline LIVE — ${latency}ms latency ✓`, 'SUCCESS');
+      }
+
+      // Poll next frame immediately for max FPS
+      requestAnimationFrame(pollFrame);
+    };
+
+    img.onerror = () => {
+      if (!polling || !S.camConnected) return;
+      logConsole(`Camera unreachable at http://${ip}/shot.jpg — check IP & WiFi`, 'ERROR');
+      setStatusCard('sc-cam', 'dot-red', `Camera : Cannot reach ${ip}`);
+      statusEl.textContent = 'JARVIS_VISION_CORE :: CONNECTION FAILED';
+      // Retry after a delay
+      setTimeout(() => {
+        if (polling && S.camConnected) pollFrame();
+      }, 2000);
+    };
+
+    img.src = `http://${ip}/shot.jpg?t=${Date.now()}`;
+  }
+
+  pollFrame();
 }
 
 function toggleFitMode() {
