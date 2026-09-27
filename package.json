@@ -1,0 +1,21 @@
+{
+  "name": "blind-maze-driver-station",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Blind Maze Driver Station Pro — Mission Control Web Dashboard & Telemetry Station",
+  "scripts": {
+    "start": "python web/server.py",
+    "dev": "python web/server.py",
+    "build": "echo 'Static web dashboard ready for deployment'"
+  },
+  "keywords": [
+    "robotics",
+    "slam",
+    "mission-control",
+    "driver-station",
+    "telemetry",
+    "hmi"
+  ],
+  "author": "Varanasi Rithwik",
+  "license": "MIT"
+}

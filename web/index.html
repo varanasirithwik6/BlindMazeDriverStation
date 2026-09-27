@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blind Maze Driver Station Pro</title>
+<meta name="description" content="Blind Maze Driver Station Pro — Premium Mission Control Dashboard for autonomous maze-solving robot navigation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- ═══════════ BOOT OVERLAY ═══════════ -->
+<div id="boot-overlay">
+  <canvas id="boot-canvas"></canvas>
+  <div id="boot-center">
+    <div id="boot-pct">0%</div>
+    <div id="boot-status">● INITIALIZING SYSTEM...</div>
+    <div id="boot-bar-track"><div id="boot-bar-fill"></div></div>
+  </div>
+  <div id="boot-terminal">
+    <div class="boot-term-title">SYSTEM BOOT TERMINAL LOGS</div>
+    <div id="boot-term-lines"></div>
+  </div>
+  <div id="boot-health">
+    <div class="boot-term-title">SUBSYSTEM HEALTH STATUS</div>
+    <div id="boot-health-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════ MISSION COMPLETE OVERLAY ═══════════ -->
+<div id="mission-overlay" class="hidden">
+  <canvas id="mission-canvas"></canvas>
+  <div id="mission-center">
+    <div id="mission-check">✓</div>
+    <h1>MISSION COMPLETE</h1>
+    <p id="mission-grade">● ALL MAZE OBJECTIVES ACHIEVED  |  EVALUATION GRADE: S+</p>
+  </div>
+  <div id="mission-cards"></div>
+  <div id="mission-timeline">START ➔ BT LINK ✓ ➔ SLAM MAP ✓ ➔ QR CHECK ✓ ➔ MISSION COMPLETE ✓</div>
+  <button id="mission-dismiss" onclick="dismissMission()">DISMISS OVERLAY</button>
+</div>
+
+<!-- ═══════════ MAIN DASHBOARD ═══════════ -->
+<div id="dashboard" class="hidden">
+  <!-- LEFT PANEL -->
+  <section id="left-panel" class="panel">
+    <div class="panel-header">
+      <span class="panel-title">MISSION CONTROL TELEMETRY</span>
+      <span id="live-clock" class="clock">CLK --:--:--</span>
+    </div>
+    <div class="toolbar">
+      <button class="sm-btn" onclick="toggleTheme()">THEME</button>
+      <button class="sm-btn" onclick="exportSessionReport()">REPORT</button>
+      <button class="sm-btn" onclick="replayFlightLog()">REPLAY</button>
+      <button class="sm-btn" onclick="showGamepadModal()">🎮 MAP</button>
+      <button class="sm-btn demo-btn" id="demo-btn" onclick="toggleDemo()">🚀 DEMO</button>
+    </div>
+    <div class="field-caption">LIVE MISSION CONTROL METRICS</div>
+    <div id="mission-panel" class="mission-panel">
+      <div class="mp-row">
+        <div class="mp-cell"><span class="mp-label">MISSION STATE</span><span class="mp-val state" id="mp-state">STANDBY</span></div>
+        <div class="mp-cell"><span class="mp-label">MISSION TIMER</span><span class="mp-val timer" id="mp-timer">🔴 00:00</span></div>
+      </div>
+      <div id="gauge-grid" class="gauge-grid"></div>
+      <div class="mp-footer" id="mp-footer">QR CHECKPOINTS: 0/3  |  BT LINK: 96%  |  EST: 05:48</div>
+    </div>
+    <div class="field-caption">ACTIVE SUBSYSTEM DATA FLOW CONDUITS</div>
+    <div id="pipelines" class="pipelines"></div>
+    <div id="status-cards"></div>
+    <div class="field-caption">BLUETOOTH LINK</div>
+    <div class="bt-row">
+      <select id="com-selector" class="com-select">
+        <option>COM12 — Standard Serial over Bluetooth link</option>
+        <option>COM3 — USB Serial Device</option>
+      </select>
+    </div>
+    <button class="connect-btn" id="bt-connect-btn" onclick="toggleBluetooth()">CONNECT LINK</button>
+  </section>
+
+  <!-- CENTER PANEL -->
+  <section id="center-panel" class="panel">
+    <div class="panel-header">
+      <span class="panel-title">PRIMARY VIDEO FEED & SYSTEM LOGS</span>
+    </div>
+    <div class="stream-row">
+      <label>STREAM:</label>
+      <input type="text" id="stream-url" value="10.9.91.169:8080" class="stream-input" placeholder="IP:PORT, 'webcam', or 'sim'">
+      <button class="sm-btn" id="src-webcam-btn" onclick="setSource('webcam')" title="Use device/laptop webcam">📷 WEBCAM</button>
+      <button class="sm-btn" id="src-sim-btn" onclick="setSource('sim')" title="Use virtual cyber rover camera">🤖 SIM</button>
+      <button class="sm-btn connect-video-btn" id="connect-cam-btn" onclick="connectVideo()">CONNECT VIDEO</button>
+    </div>
+    <div class="stream-row">
+      <label>RES:</label>
+      <select class="res-select">
+        <option>720p HD (1280×720)</option>
+        <option>1080p Full HD (1920×1080)</option>
+        <option>480p SD (640×480)</option>
+      </select>
+      <button class="sm-btn" id="fit-btn" onclick="toggleFitMode()" title="Toggle video fit mode (Cover, Stretch, Contain)">📺 RATIO: COVER</button>
+      <button class="sm-btn" onclick="toggleFullscreen()" title="Toggle full screen video mode">⛶ FULLSCREEN</button>
+    </div>
+    <!-- JARVIS Viewport -->
+    <div id="jarvis-viewport">
+      <video id="webcam-video" playsinline muted autoplay style="display:none;"></video>
+      <img id="jarvis-feed" src="" alt="" style="display:none;">
+      <canvas id="jarvis-canvas"></canvas>
+      <div id="jarvis-status">JARVIS_VISION_CORE :: DISCONNECTED</div>
+    </div>
+    <!-- AI Core -->
+    <div id="ai-core">
+      <canvas id="ai-canvas"></canvas>
+      <div id="ai-label">AI CORE NEURAL THINKING MONITOR</div>
+      <div id="ai-thinking">🧠 AI THINKING: Planning Route...</div>
+    </div>
+    <!-- Console -->
+    <div id="console">
+      <div id="console-lines"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT PANEL -->
+  <section id="right-panel" class="panel">
+    <div class="panel-header"><span class="panel-title">COMMAND & CONTROL</span></div>
+    <div class="cmd-status" id="cmd-status">COMMAND: STOPPED</div>
+    <div class="dpad">
+      <button class="dir-btn up" id="btn-up" data-dir="up">▲<br>W</button>
+      <button class="dir-btn left" id="btn-left" data-dir="left">◀<br>A</button>
+      <button class="dir-btn stop" id="btn-stop" onclick="sendStop()">■<br>STOP</button>
+      <button class="dir-btn right" id="btn-right" data-dir="right">▶<br>D</button>
+      <button class="dir-btn down" id="btn-down" data-dir="down">▼<br>S</button>
+    </div>
+    <div class="panel-header"><span class="panel-title">MAZE NAVIGATION TRACKER</span></div>
+    <div id="maze-container">
+      <canvas id="maze-canvas"></canvas>
+      <div id="maze-info">
+        <span id="maze-pos">POS: (3, 3) | HDG: 000° [N]</span>
+        <span id="maze-cov">SLAM COVERAGE: 2% | QR: 0/3</span>
+      </div>
+    </div>
+    <div class="field-caption">DRIVE SPEED LIMIT</div>
+    <div class="speed-section">
+      <input type="range" id="speed-slider" min="0" max="255" value="180" class="speed-slider">
+      <div class="speed-readout"><span id="speed-val">180</span> / 255 (<span id="speed-pct">70</span>%)</div>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="setSpeed(76)">CRAWL 30%</button>
+        <button class="preset-btn active" onclick="setSpeed(180)">CRUISE 70%</button>
+        <button class="preset-btn" onclick="setSpeed(255)">TURBO 100%</button>
+      </div>
+    </div>
+    <button class="emergency-btn" id="emergency-btn" onclick="emergencyStop()">🔴 EMERGENCY STOP [SPACE]</button>
+  </section>
+</div>
+
+<!-- ═══════════ GAMEPAD MODAL ═══════════ -->
+<div id="gamepad-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">🎮 GAMEPAD CONTROLLER CALIBRATION & HARDWARE MAPPING</div>
+    <div class="stick-row">
+      <div class="stick-viz"><canvas id="stick-left" width="110" height="110"></canvas><div class="stick-label">LEFT STICK (STEER)</div></div>
+      <div class="stick-viz"><canvas id="stick-right" width="110" height="110"></canvas><div class="stick-label">RIGHT STICK (LOOK)</div></div>
+      <div class="tuning-col">
+        <label>DEADZONE THRESHOLD: <span id="dz-val">15</span>%</label>
+        <input type="range" min="5" max="35" value="15" id="dz-slider" class="speed-slider">
+        <label>STICK SENSITIVITY: <span id="sens-val">100</span>%</label>
+        <input type="range" min="30" max="200" value="100" id="sens-slider" class="speed-slider">
+      </div>
+    </div>
+    <div class="bind-grid">
+      <div class="bind-cell">● A (FWD)</div><div class="bind-cell">● B (E-STOP)</div><div class="bind-cell">● X (LEFT)</div>
+      <div class="bind-cell">● Y (RIGHT)</div><div class="bind-cell">● LB (REVERSE)</div><div class="bind-cell">● RB (TURBO)</div>
+    </div>
+    <div class="modal-actions">
+      <button class="sm-btn" onclick="closeGamepadModal()">CLOSE</button>
+      <button class="sm-btn connect-video-btn" onclick="closeGamepadModal()">SAVE PROFILE</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

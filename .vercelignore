@@ -1,0 +1,39 @@
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Desktop Python application backend
+main.py
+audio_alerts.py
+bluetooth.py
+camera.py
+console.py
+controller.py
+flight_recorder.py
+gamepad.py
+gamepad_config.py
+joystick_overlay.py
+maze_grid.py
+motion.py
+network_monitor.py
+session_exporter.py
+settings.py
+telemetry_graph.py
+theme.py
+
+# Local recordings & snapshots
+assets/recordings/
+assets/snapshots/
+assets/reports/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Git
+.git/

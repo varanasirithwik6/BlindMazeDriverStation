@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=web/">
+  <title>Blind Maze Driver Station Pro</title>
+  <script>
+    window.location.replace("web/");
+  </script>
+  <style>
+    body {
+      background: #07090E;
+      color: #35CFFF;
+      font-family: 'JetBrains Mono', monospace, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(53, 207, 255, 0.2);
+      border-top-color: #35CFFF;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    a { color: #00E676; text-decoration: underline; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <h2>BLIND MAZE DRIVER STATION PRO</h2>
+  <p>INITIALIZING MISSION CONTROL TELEMETRY...</p>
+  <p style="font-size: 0.85rem; color: #94A3B8;">Redirecting to dashboard... If not redirected, <a href="web/">click here</a>.</p>
+</body>
+</html>
