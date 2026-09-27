@@ -1394,41 +1394,6 @@ function replayFlightLog() {
   }, 250);
 }
 
-// ── Gamepad Modal ────────────────────────────────────────────
-function showGamepadModal() {
-  document.getElementById('gamepad-modal').classList.remove('hidden');
-  drawStick('stick-left', 0.65, -0.45);
-  drawStick('stick-right', -0.3, 0.8);
-}
-function closeGamepadModal() { document.getElementById('gamepad-modal').classList.add('hidden'); }
-function drawStick(id, ax, ay) {
-  const c = document.getElementById(id);
-  const ctx = c.getContext('2d');
-  const w = c.width, h = c.height, cx = w/2, cy = h/2 - 6, r = 40;
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#0B0E14'; ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = '#242F42'; ctx.strokeRect(0, 0, w-1, h-1);
-  // Cross
-  ctx.strokeStyle = 'rgba(53,207,255,0.15)'; ctx.setLineDash([3,3]); ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(cx, cy-r); ctx.lineTo(cx, cy+r); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx-r, cy); ctx.lineTo(cx+r, cy); ctx.stroke();
-  ctx.setLineDash([]);
-  // Outer ring
-  ctx.strokeStyle = 'rgba(53,207,255,0.2)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
-  // Line
-  const kx = cx + ax * r * 0.9, ky = cy + ay * r * 0.9;
-  ctx.strokeStyle = 'rgba(0,230,118,0.6)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(kx, ky); ctx.stroke();
-  // Knob
-  ctx.fillStyle = '#35CFFF'; ctx.shadowColor = '#35CFFF'; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.arc(kx, ky, 6, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
-  // Label
-  ctx.font = '600 7px "JetBrains Mono"'; ctx.fillStyle = '#64748B'; ctx.textAlign = 'center';
-  ctx.fillText(id === 'stick-left' ? 'LEFT STICK (STEER)' : 'RIGHT STICK (LOOK)', cx, h - 4);
-}
-
 // ── Helpers ──────────────────────────────────────────────────
 function animateValue(el, from, to, duration, cb) {
   const start = performance.now();

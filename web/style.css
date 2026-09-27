@@ -464,38 +464,7 @@ body {
   background: rgba(239,68,68,0.4); box-shadow: 0 0 30px rgba(239,68,68,0.3);
 }
 
-/* ═══════════ GAMEPAD MODAL ═══════════ */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 800;
-  background: rgba(7,9,14,0.8); backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-}
-.modal-overlay.hidden { display: none; }
-.modal-box {
-  background: var(--bg-panel); border: 1px solid var(--border-glow);
-  border-radius: 12px; padding: 28px 32px; min-width: 560px;
-  max-width: 640px;
-  animation: slideUp 0.3s ease;
-}
-.modal-title {
-  font-size: 0.85rem; font-weight: 800; color: var(--cyan);
-  text-align: center; margin-bottom: 20px; letter-spacing: 1px;
-}
-.stick-row { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-.stick-viz { text-align: center; }
-.stick-label { font-size: 0.6rem; color: var(--text-dim); font-weight: 700; margin-top: 4px; }
-.tuning-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.tuning-col label { font-size: 0.65rem; color: var(--text-dim); font-weight: 700; }
-.bind-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 16px 0;
-}
-.bind-cell {
-  padding: 8px 12px; background: var(--bg-card);
-  border: 1px solid var(--border); border-radius: 6px;
-  font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
-  text-align: center;
-}
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
 
 /* ═══════════ ANIMATIONS ═══════════ */
 @keyframes pipePulse {
